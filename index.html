@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title></title>
+  <script src="//cdn.jsdelivr.net/npm/pouchdb@7.3.0/dist/pouchdb.min.js"></script>
+  <link rel="stylesheet" href="./uPlot.min.css">
+  <script src="./uPlot.iife.min.js"></script>
+  <script src="./pouchdb.authentication.min.js"></script>
+  <script src="./guestToken.js"></script>
+
+  <style type="text/css">
+    html {
+      /*background: #191713;*/
+      font-family: BlinkMacSystemFont, -apple-system, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+      font-size: 36px;
+      user-select: none;
+
+    }
+    .top {
+      height: 40vh;
+    }
+    a:hover {
+      background-color: #43413e;
+    }
+    a:active, .is-down {
+      background-color: #55534f;
+    }
+    .hidden {
+      display: none;
+    }
+    .keypad {
+      height: 50 vh;
+    }
+    .row {
+      display: flex;
+      justify-content: space-evenly;
+    }
+    .center {
+      width: 300px;
+      margin: auto
+    }
+    .uplot {
+      display: inline-block;
+      vertical-align: top;
+    }
+  </style>
+  
+</head>
+<body>
+
+<div class="center">
+  
+  <div class="row">
+    <div id="temp"></div>
+  </div>
+
+  <div class="row">
+    <div id="hum"></div>
+  </div>
+
+  <div class="row">
+    <div id="Gy"></div>
+  </div>
+
+  <div class="row">
+    <div id="Ac"></div>
+  </div>
+
+</div>
+
+<script type="text/javascript">
+
+  const db = new PouchDB(GUEST_DB, {
+    // skip_setup: false,
+    // To use JWT, this header must be added.
+    //Note the you shoud NOT hard code the JWT string
+    headers: {
+      'Authorization': 'Bearer ' + GUEST_TOKEN
+    }
+    
+  });
+  
+  console.log(db);
+  
+  db.changes({
+    'live': true,
+    'attachments': true,
+    'binary': true,
+    'since': 'now',
+    'include_docs': true,
+  }).on('change', function(change) {
+    // console.log(change)
+  }).on('complete', function(info) {
+    // changes() was canceled
+  }).on('error', function (err) {
+    console.log(err)
+  })
+
+
+  const tempHumOpts = {
+    width: 920,
+    height: 400,
+    // cursor: cursorOpts,
+    scales: {
+      x: {
+        time: true,
+      },
+    },
+    series: [
+      {},
+      {
+        scale: "°C",
+        label: "Temperatura",
+        stroke: "red",
+        // fill: "rgba(255,0,0,0.1)",
+      },
+      {
+        scale: "%",
+        label: "Umidade",
+        stroke: "green",
+        // fill: "rgba(0,255,0,0.1)",
+      },
+    ],
+    axes: [
+      {},
+      {
+        scale: "°C",
+        label: "Temperatura",
+        size: 60,
+        values: (u, vals, space) => vals.map(v => +v.toFixed(1) + "°C"),
+      },
+      {
+        side: 1,
+        scale: "%",
+        label: "Umidade",
+        values: (u, vals, space) => vals.map(v => +v.toFixed(2) + " %"),
+        grid: {show: false},
+      },
+    ],
+  };
+  
+  const optsGy = {
+    width: 920,
+    height: 400,
+    // cursor: cursorOpts,
+    scales: {
+      x: {
+        time: true,
+      },
+    },
+    series: [
+      {},
+      {
+        stroke: "red",
+        label: "GyX",
+        // fill: "rgba(255,0,0,0.1)",
+      },
+      {
+        stroke: "green",
+        label: "GyY",
+        // fill: "rgba(0,255,0,0.1)",
+      },
+      {
+        stroke: "blue",
+        label: "GyZ",
+        // fill: "rgba(0,0,255,0.1)",
+      },
+    ],
+    axes: [
+      {},
+      {
+        label: "MPU read",
+        size: 60
+      },
+    ]
+  };
+
+  const optsAc = {
+    width: 920,
+    height: 400,
+    // cursor: cursorOpts,
+    scales: {
+      x: {
+        time: true,
+      },
+    },
+    series: [
+      {},
+      {
+        stroke: "red",
+        label: "AcX",
+        // fill: "rgba(255,0,0,0.1)",
+      },
+      {
+        stroke: "green",
+        label: "AcY",
+        // fill: "rgba(0,255,0,0.1)",
+      },
+      {
+        stroke: "blue",
+        label: "AcZ",
+        // fill: "rgba(0,0,255,0.1)",
+      },
+    ],
+    axes: [
+      {},
+      {
+        label: "MPU read",
+        size: 60
+      },
+    ]
+  };
+
+
+  
+
+
+
+  db.allDocs({include_docs: true}).then(data => {
+    console.log(data)
+
+
+    const idDateToTimestamp = (idStr) => {
+      // idStr = 'data_sens001_20220617212553'
+      let dateStr = idStr.split('_')[2]
+      // dateStr = '20220617212553'
+      let [y, M, d, h, m, s] = [dateStr.slice(0,4), dateStr.slice(4,6), dateStr.slice(6,8), dateStr.slice(8,10), dateStr.slice(10,12), dateStr.slice(12,14)]
+
+      return new Date(...[y, M-1, d, h, m, s]).getTime()/1000
+    }
+
+    let dataMap = data
+    .rows
+    .map(row => row.doc)
+    .filter(doc => doc._id[0] !== '_')
+    
+    // temperature and humidity have only one item on array
+    let tempHumReducer = (a, c) => {
+      let t0 = idDateToTimestamp(c._id)
+      Object.keys(a).forEach(k => k === 't' ? a[k].push(t0) : a[k].push(c[k][0]))
+      return a
+    }
+
+    // temp
+    let tempHumData = dataMap
+    .reduce(tempHumReducer, {'temp': [], 'hum': [], 't': []} )
+    
+    let tempHumUplot = new uPlot(tempHumOpts, [
+      tempHumData.t,
+      tempHumData.temp,
+      tempHumData.hum,
+    ], document.getElementById('temp'))
+
+    // mpu data have multi samples on array
+    let mpuReducer = (a, c) => {
+      let t0 = idDateToTimestamp(c._id)
+      Object.keys(a).forEach(k => k == 't' ? a[k] = a[k].concat(c[k].map(x => (x/1e15)+t0)) : a[k] = a[k].concat(c[k]))
+      return a
+    }
+    
+    // Gy
+    let gyData = dataMap
+    .reduce(mpuReducer, {'GyX': [], 'GyY': [], 'GyZ': [], 't': []} )
+    
+    let gyUplot = new uPlot(optsGy, [
+      gyData.t,
+      gyData.GyX,
+      gyData.GyY,
+      gyData.GyZ,
+    ], document.getElementById('Gy'))
+
+    
+    // Ac
+    let acData = dataMap
+    .reduce(mpuReducer, {'AcX': [], 'AcY': [], 'AcZ': [], 't': []} )
+    
+    let acUplot = new uPlot(optsAc, [
+      acData.t,
+      acData.AcX,
+      acData.AcY,
+      acData.AcZ,
+    ], document.getElementById('Ac'))
+
+
+  })
+
+</script>
+</body>
+</html>

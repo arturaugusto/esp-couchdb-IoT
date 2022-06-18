@@ -1,0 +1,11 @@
+
+app_config = {
+
+}
+
+wifi_config = {
+    'ssid':'',
+    'password':''
+}
+
+jwt = "XXXXXX"
