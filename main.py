@@ -32,7 +32,7 @@ while True:
     # start socket
     s = socket.socket()
     s.connect(addr)
-    s.settimeout(3)
+    s.settimeout(10)
     s = ssl.wrap_socket(s)
 
     # wrap with ssl
@@ -60,7 +60,7 @@ while True:
         # get data from mpu
         for x in range(10):
           mpu_values = mpu.get_values()
-          buf['t'].append(time.time_ns())
+          buf['t'].append(time.time_ns() - start_time_ns)
           for k in mpu_values.keys():
             buf[k].append(mpu_values[k])
             time.sleep(0.1)
