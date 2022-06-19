@@ -16,6 +16,42 @@ const dateRangeFlatPicker = flatpickr(document.getElementById('dateRange'), {
 })
 
 
+const matrixReducer = (a, c) => {
+  let t0 = idDateToTimestamp(c._id)
+  Object.keys(a).forEach(k => a[k].push(c[k]))
+  return a
+}
+
+
+const registerChart = (chartId, keys, timeMatrix, dataMap, uniqSensors) => {
+  let reducerAccumulatorObject = keys.reduce((a, c) => (a[c] = [])&&a, {})
+
+  let data = dataMap
+  .reduce(matrixReducer, reducerAccumulatorObject)
+
+  let xSize = timeMatrix.flat().length
+
+  let bufferMatrix = new Array(keys.length * uniqSensors.length).fill().map(_ => new Array(xSize).fill(null))
+  // ...
+
+
+  let flatSensorsMatrix = uniqSensors.map(sensor => {
+    return keys.map(k => data[k].flat())
+  }).flat()
+
+  let chart = new uPlot(CHARTS_OPTS[chartId], [
+      // timeMatrix.map(tArr => tArr[0]),
+      timeMatrix.map((tArr, i) => tArr.slice(0, data[keys[0]][i].length)).flat(),
+    ].concat(flatSensorsMatrix),
+    document.getElementById(chartId)
+  )
+
+  CHARTS.push({
+    id: chartId,
+    keys: keys,
+    chart: chart
+  })
+}
 
 const queryDateRange = () => {
   
@@ -28,17 +64,11 @@ const queryDateRange = () => {
       item.chart.destroy()
     })
 
-    let dataMap = data
-    .rows
-    .map(row => row.doc)
-    .filter(doc => doc._id[0] !== '_')
-    
-    let matrixReducer = (a, c) => {
-      let t0 = idDateToTimestamp(c._id)
-      Object.keys(a).forEach(k => a[k].push(c[k]))
-      return a
-    }
+    let dataMap = data.rows.map(row => row.doc)
 
+    let sensorArray = dataMap.map(doc => doc._id.split('_')[1])
+    let uniqSensors = Array.from(new Set(sensorArray))
+    
     ////////////////////////////////////////////
     // time
     let timeMatrix = dataMap.map(doc => {
@@ -49,40 +79,15 @@ const queryDateRange = () => {
 
     ////////////////////////////////////////////
     // temp
-    let tempHumData = dataMap
-    .reduce(matrixReducer, {'temp': [], 'hum': []})
-    
-    CHARTS.push({id: 'tempHum', keys: ['temp', 'hum'], chart: new uPlot(tempHumOpts, [
-      timeMatrix.map(tArr => tArr[0]),
-      tempHumData.temp.flat(),
-      tempHumData.hum.flat(),
-    ], document.getElementById('temp'))})
+    registerChart('tempHum', ['temp', 'hum'], timeMatrix, dataMap, uniqSensors)
     
     ////////////////////////////////////////////
     // Gy
-    let gyData = dataMap
-    .reduce(matrixReducer, {'GyX': [], 'GyY': [], 'GyZ': []})
-    
-    CHARTS.push({id: 'Gy', keys: ['GyX', 'GyY', 'GyZ'], chart: new uPlot(optsGy, [
-      timeMatrix.flat(),
-      gyData.GyX.flat(),
-      gyData.GyY.flat(),
-      gyData.GyZ.flat(),
-    ], document.getElementById('Gy'))})
-
+    registerChart('Gy', ['GyX', 'GyY', 'GyZ'], timeMatrix, dataMap, uniqSensors)
     
     ////////////////////////////////////////////
     // Ac
-    let acData = dataMap
-    .reduce(matrixReducer, {'AcX': [], 'AcY': [], 'AcZ': []})
-    
-    CHARTS.push({id: 'Ac', keys: ['AcX', 'AcY', 'AcZ'], chart: new uPlot(optsAc, [
-      timeMatrix.flat(),
-      acData.AcX.flat(),
-      acData.AcY.flat(),
-      acData.AcZ.flat(),
-    ], document.getElementById('Ac'))})
-
+    registerChart('Ac', ['AcX', 'AcY', 'AcZ'], timeMatrix, dataMap, uniqSensors)
 
   })
 }
