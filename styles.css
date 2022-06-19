@@ -1,0 +1,62 @@
+html {
+  /*background: #191713;*/
+  font-family: BlinkMacSystemFont, -apple-system, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+  font-size: 16px;
+  user-select: none;
+
+}
+.top {
+  height: 40vh;
+}
+a:hover {
+  background-color: #43413e;
+}
+a:active, .is-down {
+  background-color: #55534f;
+}
+.hidden {
+  display: none;
+}
+.keypad {
+  height: 50 vh;
+}
+.row {
+  display: flex;
+  justify-content: space-evenly;
+}
+.center {
+  width: 300px;
+  margin: auto
+}
+.uplot {
+  display: inline-block;
+  vertical-align: top;
+}
+
+input:active, input:focus {
+  border-color: #3273dc;
+  box-shadow: 0 0 0 0.125em rgb(50 115 220 / 25%);
+  outline: none;
+}
+input {
+  -moz-appearance: none;
+  -webkit-appearance: none;
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 0px;
+  box-shadow: none;
+  display: inline-flex;
+  font-size: 1pc;
+  justify-content: flex-start;
+  padding-bottom: calc(0.5em - 1px);
+  padding-left: calc(0.75em - 1px);
+  padding-right: calc(0.75em - 1px);
+  padding-top: calc(0.5em - 1px);
+  position: relative;
+  vertical-align: top;
+  box-shadow: inset 0 0.0625em 0.125em rgb(10 10 10 / 5%);
+  background-color: #fff;
+  border-color: #dbdbdb;
+  color: #363636;
+}
+
